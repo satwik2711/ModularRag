@@ -72,36 +72,44 @@ print(str(output))
 
 ## Adding a Reranker Module
 
-reranker = CohereRerank()
-p = QueryPipeline(verbose=True)
-p.add_modules(
-    {
-        "input": InputComponent(),
-        "retriever": retriever,
-        "reranker": reranker,
-        "output": SimpleSummarize(),
-    }
-)
-p.add_link("input", "retriever")
-p.add_link("input", "reranker", dest_key="query_str")
-p.add_link("retriever", "reranker", dest_key="nodes")
-p.add_link("input", "output", dest_key="query_str")
-p.add_link("reranker", "output", dest_key="nodes")
+# reranker = CohereRerank()
+# p = QueryPipeline(verbose=True)
+# p.add_modules(
+#     {
+#         "input": InputComponent(),
+#         "retriever": retriever,
+#         "reranker": reranker,
+#         "output": SimpleSummarize(),
+#     }
+# )
+# p.add_link("input", "retriever")
+# p.add_link("input", "reranker", dest_key="query_str")
+# p.add_link("retriever", "reranker", dest_key="nodes")
+# p.add_link("input", "output", dest_key="query_str")
+# p.add_link("reranker", "output", dest_key="nodes")
 
-output, intermediates = p.run_with_intermediates(input=question)
-retriever_output = intermediates["retriever"].outputs["output"]
-print(f"retriever output:")
-for node in retriever_output:
-    print(f"node id: {node.node_id}, node score: {node.score}")
-reranker_output = intermediates["reranker"].outputs["nodes"]
-print(f"\nreranker output:")
-for node in reranker_output:
-    print(f"node id: {node.node_id}, node score: {node.score}")
+# output, intermediates = p.run_with_intermediates(input=question)
+# retriever_output = intermediates["retriever"].outputs["output"]
+# print(f"retriever output:")
+# for node in retriever_output:
+#     print(f"node id: {node.node_id}, node score: {node.score}")
+# reranker_output = intermediates["reranker"].outputs["nodes"]
+# print(f"\nreranker output:")
+# for node in reranker_output:
+#     print(f"node id: {node.node_id}, node score: {node.score}")
+
 
 ## Adding a Query Rewrite Module
 
+from llama_index.core.query_pipeline import CustomQueryComponent
+from typing import Dict, Any
+
 class HydeComponent(CustomQueryComponent):
-    """HyDE query rewrite component."""
+    """Simple HyDE query rewrite component."""
+    def __init__(self, llm):
+        super().__init__()
+        self.llm = llm
+
     def _validate_component_inputs(self, input: Dict[str, Any]) -> Dict[str, Any]:
         """Validate component inputs during run_component."""
         assert "input" in input, "input is required"
@@ -118,28 +126,26 @@ class HydeComponent(CustomQueryComponent):
 
     def _run_component(self, **kwargs) -> Dict[str, Any]:
         """Run the component."""
-        hyde = HyDEQueryTransform(include_original=True)
-        query_bundle = hyde(kwargs["input"])
-        return {"output": query_bundle.embedding_strs[0]}
+        query = kwargs["input"]
+        hyde_prompt = f"Given the question '{query}', generate a hypothetical document that would answer this question:"
+        hypothetical_doc = self.llm.complete(hyde_prompt).text
+        return {"output": f"{query}\n\nHypothetical document: {hypothetical_doc}"}
 
-query_rewriter = HydeComponent()
+query_rewriter = HydeComponent(llm)
 p = QueryPipeline(verbose=True)
 p.add_modules(
     {
         "input": InputComponent(),
         "query_rewriter": query_rewriter,
         "retriever": retriever,
-        "reranker": reranker,
         "output": SimpleSummarize(),
     }
 )
 
 p.add_link("input", "query_rewriter")
 p.add_link("query_rewriter", "retriever")
-p.add_link("input", "reranker", dest_key="query_str")
-p.add_link("retriever", "reranker", dest_key="nodes")
 p.add_link("input", "output", dest_key="query_str")
-p.add_link("reranker", "output", dest_key="nodes")
+p.add_link("retriever", "output", dest_key="nodes")
 
 ## Replacing the Output Module
 
@@ -149,7 +155,6 @@ p.add_modules(
         "input": InputComponent(),
         "query_rewriter": query_rewriter,
         "retriever": retriever,
-        "reranker": reranker,
         "output": TreeSummarize(),
     }
 )
@@ -175,17 +180,14 @@ p.add_modules(
         "query_rewriter": query_rewriter,
         "retriever": retriever,
         "meta_replacer": meta_replacer,
-        "reranker": reranker,
         "output": TreeSummarize(),
     }
 )
 p.add_link("input", "query_rewriter")
 p.add_link("query_rewriter", "retriever")
 p.add_link("retriever", "meta_replacer")
-p.add_link("input", "reranker", dest_key="query_str")
-p.add_link("meta_replacer", "reranker", dest_key="nodes")
 p.add_link("input", "output", dest_key="query_str")
-p.add_link("reranker", "output", dest_key="nodes")
+p.add_link("meta_replacer", "output", dest_key="nodes")
 
 output, intermediates = p.run_with_intermediates(input=question)
 retriever_output = intermediates["retriever"].outputs["output"]
@@ -235,7 +237,6 @@ p.add_modules(
         "query_rewriter": query_rewriter,
         "retriever": retriever,
         "meta_replacer": meta_replacer,
-        "reranker": reranker,
         "output": TreeSummarize(),
         "evaluator": evaluator,
     }
@@ -243,13 +244,11 @@ p.add_modules(
 p.add_link("input", "query_rewriter", src_key="input")
 p.add_link("query_rewriter", "retriever")
 p.add_link("retriever", "meta_replacer")
-p.add_link("input", "reranker", src_key="input", dest_key="query_str")
-p.add_link("meta_replacer", "reranker", dest_key="nodes")
 p.add_link("input", "output", src_key="input", dest_key="query_str")
-p.add_link("reranker", "output", dest_key="nodes")
+p.add_link("meta_replacer", "output", dest_key="nodes")
 p.add_link("input", "evaluator", src_key="input", dest_key="question")
 p.add_link("input", "evaluator", src_key="ground_truth", dest_key="ground_truth")
-p.add_link("reranker", "evaluator", dest_key="nodes")
+p.add_link("meta_replacer", "evaluator", dest_key="nodes")
 p.add_link("output", "evaluator", dest_key="answer")
 
 question = "Which two members of the Avengers created Ultron?"
