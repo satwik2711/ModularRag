@@ -99,7 +99,7 @@ for node in retriever_output:
 from llama_index.core.query_pipeline import CustomQueryComponent
 from llama_index.core.indices.query.query_transform import HyDEQueryTransform
 
-class HydeComponent(CustomQueryComponent):
+class HydeComponent(CustomQueryComponent):  
     """HyDE query rewrite component."""
     def _validate_component_inputs(self, input: Dict[str, Any]) -> Dict[str, Any]:
         """Validate component inputs during run_component."""
