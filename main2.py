@@ -1,7 +1,3 @@
-# Advanced RAG Retrieval Strategies: Flow and Modular
-
-## Setup and Imports
-
 import os
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -81,21 +77,16 @@ p.add_modules(
 )
 p.add_link("input", "retriever")
 p.add_link("input", "output", dest_key="query_str")
-# p.add_link("reranker", "output", dest_key="nodes")
+
 
 output, intermediates = p.run_with_intermediates(input=question)
 retriever_output = intermediates["retriever"].outputs["output"]
 print(f"retriever output:")
 for node in retriever_output:
     print(f"node id: {node.node_id}, node score: {node.score}")
-# reranker_output = intermediates["reranker"].outputs["nodes"]
-# print(f"\nreranker output:")
-# for node in reranker_output:
-#     print(f"node id: {node.node_id}, node score: {node.score}")
+
 
 ## Adding a Query Rewrite Module
-
-
 from llama_index.core.query_pipeline import CustomQueryComponent
 from llama_index.core.indices.query.query_transform import HyDEQueryTransform
 
