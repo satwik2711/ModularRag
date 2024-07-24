@@ -75,10 +75,6 @@ This diagram shows the main components of our pipeline:
 
 Each component plays a crucial role in improving the performance and accuracy of our question-answering system.
 
-## Pipeline Visualization
-
-The project includes a visualization of the query pipeline using pyvis, which can be found in `output/pipeline_dag.html`.
-
 ## Requirements
 
 - Python 3.7+

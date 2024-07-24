@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["COHERE_API_KEY"] = os.getenv("COHERE_API_KEY")
 
 
 ## Document Indexing
@@ -141,11 +142,11 @@ p.add_modules(
     }
 )
 
-## Visualizing the Query Pipeline
+# ## Visualizing the Query Pipeline
 
-net = Network(notebook=True, cdn_resources="in_line", directed=True)
-net.from_nx(p.clean_dag)
-net.write_html("output/pipeline_dag.html")
+# net = Network(notebook=True, cdn_resources="in_line", directed=True)
+# net.from_nx(p.clean_dag)
+# net.write_html("output/pipeline_dag.html")
 
 ## Using Sentence Window Retrieval
 
@@ -238,3 +239,5 @@ ground_truth = "Tony Stark (Iron Man) and Bruce Banner (The Hulk)."
 output = p.run(input=question, ground_truth=ground_truth)
 print(f"answer: {output['answer']}")
 print(f"evaluation: {output['evaluation']}")
+
+
